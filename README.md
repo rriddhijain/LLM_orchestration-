@@ -72,12 +72,12 @@ llm-self-scheduling/
 
 ## 👥 Roles & Team Allocation
 
-| Role | Domain Owned | Specific Code Deliverables |
+| Role | Specialized Reading Focus | Core Coding Ownership |
 |---|---|---|
-| **Member 1** | **Engine Internals & Hooking** | `engine/engine_wrapper.py`, `engine/memory_monitor.py`, `schedulers/base.py`. |
-| **Member 2** | **Classical Baselines & Preemption** | `schedulers/fcfs.py`, `schedulers/mlfq.py` (3-level queue: $q_1=32, q_2=128, q_3=\infty$), preemption hooks. |
-| **Member 3** | **Predictor-Free Scheduler** | `schedulers/predictor_free.py` (ranking prompt / runtime metadata extractor, aging counters). |
-| **Member 4** | **Traces, Benchmarks & Metrics** | `benchmarks/trace_generator.py`, `benchmarks/async_runner.py`, `eval/plot_results.py`. |
+| **Member 1**<br>*(Engine Core & Hooking Lead)* | **vLLM** (*Kwon et al., SOSP 2023*):<br>• Sec 3: Block table virtual memory translation<br>• Sec 4: Scheduler loops, `waiting` vs `running` queues, preemption via recompute/swap | • Fork/wrap serving engine runtime (`engine/engine_wrapper.py`).<br>• Expose extensible `SchedulerPolicy` abstract base class inside step loop.<br>• Intercept `waiting_queue` & pass candidate request metadata before batching.<br>• Instrument KV-cache block allocation trackers & memory limiters (`engine/memory_monitor.py`). |
+| **Member 2**<br>*(Classical Baselines & Preemption Lead)* | **FastServe** (*Wu et al., NSDI 2026 / arXiv:2305.05920*):<br>• Sec 4: Skip-join MLFQ state machine, quanta assignments ($q_1 < q_2 < \dots < q_n$), execution demotion rules | • Implement baseline `FCFSScheduler` (`schedulers/fcfs.py`).<br>• Implement 3-level `FastServeMLFQScheduler` (`schedulers/mlfq.py`) with token quanta ($q_1=32, q_2=128, q_3=\infty$).<br>• Manage preemption logic: token quanta tracking, priority downgrades, cache preservation/recomputation signals.<br>• Write unit tests for queue state transitions (`tests/test_mlfq.py`). |
+| **Member 3**<br>*(Predictor-Free Self-Scheduler Lead)* | **Learning to Rank** (*Fu et al., arXiv:2408.15792*):<br>• Sec 3 & 4: Pairwise ranking mechanics, queue sorting hooks, starvation prevention mechanisms, aging counters | • Implement `PredictorFreeScheduler` (`schedulers/predictor_free.py`).<br>• Build self-scheduling ranker: construct ranking prompt/meta-pass to evaluate queued requests without external BERT models.<br>• Implement starvation control: dynamic aging counter ($\text{priority} = \text{score} + \alpha \cdot t_{\text{wait}}$) to prevent stalling.<br>• Measure scheduler decision latency (runtime overhead per scheduling iteration). |
+| **Member 4**<br>*(Workload, Benchmarking & Metrics Lead)* | **Splitwise** (*Patel et al., ISCA 2024 / arXiv:2311.18677*):<br>• Sec 2 & 5: Prefill-to-decode latency divergence, TTFT vs. TPOT under contention, Normalized Latency formulation | • Build synthetic bimodal workload generator (`benchmarks/trace_generator.py`) with Poisson arrivals.<br>• Build asynchronous HTTP/asyncio client test harness (`benchmarks/async_runner.py`).<br>• Implement automated CSV telemetry logging: Request ID, Arrival, TTFT, TPOT, JCT, Output Tokens.<br>• Build Matplotlib/Pandas analysis pipeline (`eval/plot_results.py`) for CDFs and Normalized Latency curves. |
 
 ---
 
